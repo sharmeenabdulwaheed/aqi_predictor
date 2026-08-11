@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.env
+venv/
+.venv/
+.streamlit/secrets.toml
+.pytest_cache/
+*.egg-info/
+.DS_Store
+notebooks/eda_outputs/
+
+# NOTE: data/aqi_data.db, models/*.pkl, and artifacts/ are intentionally
+# NOT ignored — they are the "datastore" and "model registry" for this
+# project and are committed back to the repo by the GitHub Actions
+# workflows so the dashboard can read them directly.

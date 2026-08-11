@@ -1,0 +1,47 @@
+name: Feature Pipeline
+
+on:
+  schedule:
+    - cron: "0 * * * *"   # every hour, on the hour (UTC)
+  workflow_dispatch: {}
+
+permissions:
+  contents: write   # needed so this workflow can commit the updated .db file
+
+concurrency:
+  group: aqi-data-write   # prevents overlapping runs from racing on git push
+  cancel-in-progress: false
+
+jobs:
+  run-feature-pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run feature pipeline
+        env:
+          OWM_API_KEY: ${{ secrets.OWM_API_KEY }}
+          AQICN_TOKEN: ${{ secrets.AQICN_TOKEN }}
+          CITY_LAT: ${{ secrets.CITY_LAT }}
+          CITY_LON: ${{ secrets.CITY_LON }}
+          CITY_NAME: ${{ secrets.CITY_NAME }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: python src/feature_pipeline.py
+
+      - name: Commit updated database back to the repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/aqi_data.db
+          git diff --quiet --cached || git commit -m "Hourly AQI data update [skip ci]"
+          git pull --rebase origin ${{ github.ref_name }}
+          git push
